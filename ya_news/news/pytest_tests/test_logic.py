@@ -1,4 +1,3 @@
-from http import HTTPStatus
 import pytest
 
 from pytest_django.asserts import assertRedirects
@@ -46,14 +45,17 @@ def test_author_can_delete_comment(author_client, news, comment):
     assertRedirects(response, expected_url)
     assert Comment.objects.count() == 0
 
+
 # Авториз/ пользователь не может редактировать и удалять чужие комментарии.
 @pytest.mark.parametrize(
     'name',
     ('news:edit', 'news:delete')
 )
-def test_author_cant_edit_and_delete_others_comment(
-        not_author_client, name, comment, form_data
-    ):
+def test_author_cant_edit_and_delete_others_comment(not_author_client,
+                                                    name,
+                                                    comment,
+                                                    form_data
+                                                    ):
     url = reverse(name, args=(comment.pk,))
     comment_text = comment.text
     not_author_client.post(url, data=form_data)
