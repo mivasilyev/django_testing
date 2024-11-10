@@ -3,7 +3,7 @@ import pytest
 from pytest_django.asserts import assertRedirects
 
 from news.forms import BAD_WORDS
-from news.models import Comment, News
+from news.models import Comment
 
 
 pytestmark = pytest.mark.django_db

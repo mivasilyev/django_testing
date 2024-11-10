@@ -1,10 +1,6 @@
-from datetime import datetime, timedelta
-from django.urls import reverse
-
 import pytest
 
 from news.forms import CommentForm
-from news.models import Comment, News
 from yanews.settings import NEWS_COUNT_ON_HOME_PAGE
 
 
