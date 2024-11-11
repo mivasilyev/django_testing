@@ -1,21 +1,24 @@
-from django.contrib.auth import get_user_model
-
 from notes.forms import NoteForm
 from notes.tests.test_common import TestCommon
-
-
-User = get_user_model()
 
 
 class TestNotes(TestCommon):
 
     def test_notes_list(self):
-        response = self.author_client.get(self.url_notes_reverse)
-        notes = response.context['object_list']
-        # В цикле: ни одна заметка не принадлежит другому автору.
-        # В список заметок одного пользователя не попадают заметки другого.
-        for note in notes:
-            self.assertEqual(note.author, self.author)
+        authors = (
+            (self.author, self.author_client),
+            (self.author_second, self.author_second_client)
+        )
+        # В фикстурах в цикле созданы по несколько заметок для двух авторов.
+        # Проверяем, что ни один из авторов не видит заметок другого.
+        for author_, client_ in authors:
+            with self.subTest(author_=author_, client_=client_):
+                response = client_.get(self.url_notes_reverse)
+                notes = response.context['object_list']
+                # В цикле проверяем, что ни одна заметка на странице одного
+                # пользователя не принадлежит другому.
+                for note in notes:
+                    self.assertEqual(note.author, author_)
 
     def test_note_detail(self):
         response = self.author_client.get(self.url_detail_reverse)

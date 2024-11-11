@@ -1,14 +1,10 @@
 from http import HTTPStatus
 
-from django.contrib.auth import get_user_model
 from pytils.translit import slugify
 
 from notes.forms import WARNING
 from notes.models import Note
 from notes.tests.test_common import TestCommon
-
-
-User = get_user_model()
 
 
 class TestNoteCreation(TestCommon):
@@ -74,7 +70,6 @@ class TestNoteEditDelete(TestCommon):
     def test_author_can_edit_note(self):
         # Сохраняем pk заметки.
         note_pk = self.note.pk
-        note_author = self.note.author
         # Выполняем запрос на редактирование от имени автора.
         response = self.author_client.post(
             self.url_edit_reverse,
@@ -83,15 +78,14 @@ class TestNoteEditDelete(TestCommon):
         # Проверяем, что сработал редирект.
         self.assertRedirects(response, self.url_done_reverse)
         new_note = Note.objects.get(pk=note_pk)
-        # Проверяем, что текст соответствует обновленному.
+        # Проверяем, что содержимое заметки изменилось и соответствует
+        # содержимому отправленной формы, а автор остался прежний.
         self.assertEqual(new_note.title, self.form_data['title'])
         self.assertEqual(new_note.text, self.form_data['text'])
-        # Проверяем, что автор остался тот же, что и у исходной заметки.
-        self.assertEqual(new_note.author, note_author)
+        self.assertEqual(new_note.author, self.note.author)
 
     def test_user_cant_edit_note_of_another_user(self):
         # Выполняем запрос на редактирование от имени другого пользователя.
-        note = self.note
         response = self.reader_client.post(
             self.url_edit_reverse,
             data=self.form_data
@@ -99,8 +93,8 @@ class TestNoteEditDelete(TestCommon):
         # Проверяем, что вернулась 404 ошибка.
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         # Обновляем объект.
-        new_note = Note.objects.get(pk=note.pk)
-        # Проверяем, что текст остался тем же, что и был.
-        self.assertEqual(note.title, new_note.title)
-        self.assertEqual(note.text, new_note.text)
-        self.assertEqual(note.author, new_note.author)
+        new_note = Note.objects.get(pk=self.note.pk)
+        # Проверяем, что текст и автор сохранились.
+        self.assertEqual(self.note.title, new_note.title)
+        self.assertEqual(self.note.text, new_note.text)
+        self.assertEqual(self.note.author, new_note.author)
