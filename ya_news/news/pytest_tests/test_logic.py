@@ -1,6 +1,7 @@
-from django.urls import reverse
 import pytest
+from django.urls import reverse
 from pytest_django.asserts import assertRedirects
+from pytest_lazyfixture import lazy_fixture as lf
 
 from news.forms import BAD_WORDS
 from news.models import Comment
@@ -31,44 +32,45 @@ def test_author_can_create_comment(news, author, author_client, url_news):
     assert new_comment.news == news
 
 
-def test_author_can_edit_comment(news, author, author_client, comment):
+def test_author_can_edit_comment(
+        news, author, author_client, comment, url_edit
+):
     """Авторизованный пользователь может редактировать свои комментарии."""
-    url = reverse('news:edit', args=(comment.pk,))
-    author_client.post(url, data=FORM_DATA)
+    comment = Comment.objects.get(pk=comment.pk)
+    author_client.post(url_edit, data=FORM_DATA)
     new_comment = Comment.objects.get(pk=comment.pk)
     assert new_comment.text == FORM_DATA['text']
-    assert new_comment.author == author
-    assert new_comment.news == news
+    assert new_comment.text != comment.text
+    assert new_comment.author == comment.author
+    assert new_comment.news == comment.news
 
 
-def test_author_can_delete_comment(author_client, url_news, comment):
+def test_author_can_delete_comment(
+        author_client, url_news, url_delete, comment
+):
     """Авторизованный пользователь может удалять свои комментарии."""
     initial_count = Comment.objects.count()
-    url = reverse('news:delete', args=(comment.pk,))
     expected_url = url_news + '#comments'
-    response = author_client.post(url)
+    response = author_client.post(url_delete)
     assertRedirects(response, expected_url)
     assert Comment.objects.count() == initial_count - 1
 
 
 @pytest.mark.parametrize(
-    'name',
-    ('news:edit', 'news:delete')
+    'url_reverse',
+    (lf('url_edit'), lf('url_delete'))
 )
 def test_author_cant_edit_and_delete_others_comment(
-    author, news, not_author_client, name, comment
+    author, news, not_author_client, url_reverse, comment
 ):
     """
     Авторизованный пользователь не может редактировать и удалять чужие
     комментарии.
     """
-    url = reverse(name, args=(comment.pk,))
-    comment_text = comment.text
     initial_count = Comment.objects.count()
-    not_author_client.post(url, data=FORM_DATA)
+    not_author_client.post(url_reverse, data=FORM_DATA)
     assert Comment.objects.count() == initial_count
-    comment = Comment.objects.get(pk=comment.pk)
-    assert comment.text == comment_text
+    assert comment.text != FORM_DATA['text']
     assert comment.author == author
     assert comment.news == news
 

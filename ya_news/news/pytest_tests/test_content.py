@@ -1,7 +1,7 @@
 import pytest
+from django.conf import settings
 
 from news.forms import CommentForm
-from yanews.settings import NEWS_COUNT_ON_HOME_PAGE
 
 
 pytestmark = pytest.mark.django_db
@@ -10,9 +10,8 @@ pytestmark = pytest.mark.django_db
 def test_homepage_news_limit(client, url_home, many_news):
     """Количество новостей на гравной странице не более заданного."""
     response = client.get(url_home)
-    object_list = response.context['object_list']
-    notes_count = object_list.count()
-    assert notes_count <= NEWS_COUNT_ON_HOME_PAGE
+    notes_count = response.context['object_list'].count()
+    assert notes_count == settings.NEWS_COUNT_ON_HOME_PAGE
 
 
 def test_homepage_news_sorted(client, url_home, many_news):
