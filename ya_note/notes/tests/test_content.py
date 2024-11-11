@@ -1,50 +1,10 @@
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
-from django.urls import reverse
 
 from notes.forms import NoteForm
-from notes.models import Note
+from notes.tests.test_common import TestCommon
 
 
 User = get_user_model()
-
-
-class TestCommon(TestCase):
-
-    MULTIPLE_NOTES = 3
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.author = User.objects.create(username='author')
-        cls.author_client = Client()
-        cls.author_client.force_login(cls.author)
-        cls.author_second = User.objects.create(username='author_second')
-        cls.author_second_client = Client()
-        cls.author_second_client.force_login(cls.author_second)
-        cls.all_notes = []
-        for index in range(cls.MULTIPLE_NOTES * 2):
-            # В цикле создаем заметки для двух авторов.
-            if index % 2 == 0:
-                author = cls.author
-            else:
-                author = cls.author_second
-            note = Note(
-                title=f'Заметка {index}',
-                text=f'Текст {index} заметки.',
-                slug=f'slug{index}',
-                author=author
-            )
-            cls.all_notes.append(note)
-        Note.objects.bulk_create(cls.all_notes)
-        cls.note = cls.all_notes[0]
-        # Реверсы
-        cls.url_notes_reverse = reverse('notes:list')
-        cls.url_detail_reverse = reverse(
-            'notes:detail', args=(cls.note.slug,)
-        )
-        cls.url_edit_reverse = reverse('notes:edit', args=(cls.note.slug,))
-        cls.url_add_reverse = reverse('notes:add', None)
-        cls.urls = (cls.url_add_reverse, cls.url_edit_reverse)
 
 
 class TestNotes(TestCommon):
@@ -52,8 +12,6 @@ class TestNotes(TestCommon):
     def test_notes_list(self):
         response = self.author_client.get(self.url_notes_reverse)
         notes = response.context['object_list']
-        # Число заметок совпадает с числом заметок автора.
-        self.assertEqual(notes.count(), self.MULTIPLE_NOTES)
         # В цикле: ни одна заметка не принадлежит другому автору.
         # В список заметок одного пользователя не попадают заметки другого.
         for note in notes:
@@ -88,3 +46,6 @@ class TestNoteCreationAndEdit(TestCommon):
                 self.assertIn('form', response.context)
                 # Проверим, что объект формы соответствует нужному классу.
                 self.assertIsInstance(response.context['form'], NoteForm)
+
+# Проверка на попадание заметок одного пользователя в список заметок другого
+# пользователя производится в test_notes_list.
